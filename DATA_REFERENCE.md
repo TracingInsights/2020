@@ -1,0 +1,426 @@
+
+
+This guide walks through every field found in the TracingInsights GitHub telemetry data repositories and their JSON structures. Each one is clearly explained and expanded with practical context, making it easy to understand even if you're completely new to Formula 1 data analysis.
+
+A machine-readable version of this reference is available at [`data_dictionary.json`](data_dictionary.json).
+
+This repository holds the **2020 season**: 17 Grands Prix with Practice 1, Practice 2, Practice 3, Qualifying and Race (no sprints, no pre-season testing). A few weekends ran fewer practice sessions: Styrian Grand Prix Practice 3 was cancelled (rain), so that folder only has an empty `drivers.json`, `rcm.json` and `weather.json`; the Eifel Grand Prix only has Practice 3 (Practice 1 and 2 were cancelled); and the two-day Emilia Romagna Grand Prix only has Practice 1.
+
+## 🛠️ How This Data Is Generated
+
+| Script | Primary Output | Extra Session Files | Notes |
+|---|---|---|---|
+| `FP1.py`, `FP2.py`, `FP3.py`, `Q.py`, `R.py` | Per-driver `laptimes.json` and per-lap `{lap}_tel.json` telemetry | `weather.json`, `rcm.json`, `drivers.json`, `corners.json`, `session_laptimes.json` | Full telemetry extraction, one script per session type; uses FastF1 + MultiViewer circuit API fallback. |
+| `LapTimes.py` | Per-driver `laptimes.json` only | None | Lap-time-only extraction; overwrites Race lap times and positions with the official Ergast/Jolpica values and adds qualifying segments (`qs`). |
+| `SessionLapTimes.py` | `session_laptimes.json` | None | Merges every driver's `laptimes.json` of a session (alphabetical driver order). |
+| `corner.py` | `corners.json` | None | Rewrites `corners.json` for every session without re-extracting telemetry, using the same code as `R.py`. |
+| `team_radio.py` | Per-driver `radio/*.mp3` | `team_radio.json` | Lists each session's clips from `TeamRadio.json` in the F1 live timing archive and downloads them. |
+| `download_images.py` | `images/` | `images/manifest.json` | Driver portraits, headshots and car images (see the README). |
+
+**Data sources:**
+- **FastF1:** base lap timing, telemetry, weather, race control messages, circuit info, driver info, qualifying segments.
+- **F1 live timing archive:** everything FastF1 loads, plus the team radio index and recordings. Since 15 Oct 2026 the archive requires an F1 TV subscription token; FastF1 >= 3.9.0a0 sends it (see the README's F1 TV Authentication section).
+- **Ergast/Jolpica:** official Race lap times and positions (used by `LapTimes.py` to overwrite FastF1 Race `LapTime` and `Position`).
+- **OpenF1:** mini-sector segments (`ms1`/`ms2`/`ms3`) in the 2026 repo. OpenF1 has no data before 2023, so these columns are always `"None"` for 2020.
+- **MultiViewer API:** circuit details for `corners.json` (marshal lights/sectors, pit loss, track outline) and the corner geometry fallback when FastF1 circuit info is unavailable.
+
+---
+
+## 📍 WEATHER DATA (`weather.json`)
+
+Environmental conditions recorded approximately once per minute during the session.
+
+| Abbreviation | Full Name | Description | Unit |
+|---|---|---|---|
+| **wT** | Time | Session time when this weather sample was recorded from the start of session | seconds |
+| **wAT** | Air Temperature | Ambient air temperature around the track | °C (Celsius) |
+| **wH** | Humidity | Relative humidity of the air | % (percentage) |
+| **wP** | Pressure | Atmospheric air pressure | mbar (millibars) |
+| **wR** | Rainfall | Boolean flag indicating whether it was raining at this moment | Boolean (`true`/`false`) |
+| **wTT** | Track Temperature | Temperature of the asphalt surface | °C (Celsius) |
+| **wWD** | Wind Direction | Direction the wind is coming from, measured as compass bearing | ° (degrees, 0-359) |
+| **wWS** | Wind Speed | How fast the wind is blowing | m/s (meters per second) |
+
+### Why Weather Matters in F1
+Weather affects lap times dramatically. Cold air reduces engine power, hot tracks reduce tire grip, rain changes braking distances. Wind direction affects DRS (Drag Reduction System) effectiveness and how the car handles in turns.
+
+---
+
+## 📋 RACE CONTROL MESSAGES (`rcm.json`)
+
+Messages sent by Race Control (the officials) to teams about track status, penalties, and incidents.
+
+| Abbreviation | Full Name | Description | Values |
+|---|---|---|---|
+| **time** | Time | Session time when this message was issued | Time |
+| **cat** | Category | Type of message being sent | "Other", "Flag", "Drs", "CarEvent" |
+| **msg** | Message | Human-readable description of the event | Examples: "Yellow Flag", "DRS Enabled", "Unsafe Release" |
+| **status** | Status | Additional context about the message state | Examples: "DISABLED", "ENABLED", depends on category |
+| **flag** | Flag | Type of flag being waved (if applicable) | "GREEN", "RED", "YELLOW", "CLEAR", "CHEQUERED" |
+| **scope** | Scope | How wide the impact of this message is | "Track" (entire track), "Sector" (one of 3 sectors), "Driver" (specific driver) |
+| **sector** | Sector | Which mini sector is affected (if scope is "Sector") There are 3 sectors, each divided into 8 mini sectors | 1-24 |
+| **dNum** | Driver Number / Racing Number | The driver's car number affected by the message (if scope is "Driver") | String: "1", "44", "63", etc. |
+| **lap** | Lap | Which lap number this message refers to | Integer: lap number |
+
+### What This Means
+When a yellow flag is deployed due to debris in Sector 2, you might see: `{cat: "Flag", msg: "Yellow", flag: "YELLOW", scope: "Sector", sector: 2}`. This tells teams drivers must slow down in that sector.
+
+---
+
+## 🎯 TELEMETRY DATA (`tel.json`)
+
+Detailed second-by-second (actually 3.7 Hz sampling, ~270ms intervals) data from the car's sensors and systems.
+
+A JSON Schema for validating these files is available at [`schemas/telemetry.schema.json`](schemas/telemetry.schema.json).
+
+### Basic Car Metrics
+| Abbreviation | Full Name | Description | Unit | Notes |
+|---|---|---|---|---|
+| **time** | Time | Time when this data sample was recorded from start of the lap | seconds |  |
+| **rpm** | Revolutions Per Minute | Engine rotations per minute | RPM | Higher on straights, lower in corners |
+| **speed** | Speed | How fast the car is traveling | km/h | Derived from GPS/telemetry sources |
+| **gear** | Gear | Current gear the car is in | 0-8 | F1 uses 8-speed gearboxes; 0 = neutral |
+| **throttle** | Throttle Position | How much the driver is pressing the throttle pedal | 0-100% | 0% = fully released, 100% = floored |
+| **brake** | Brake | Whether brakes are being applied | Boolean (0/1) | Binary: either braking or not |
+| **drs** | Drag Reduction System | Status of DRS (rear wing flap that reduces drag). The raw FastF1 value is mapped to a binary open/closed state. | 0 or 1 | 0 = Off/closed; 1 = open. Raw FastF1 DRS values of `10`, `12`, or `14` are treated as open. |
+| **distance** | Distance | Total distance driven since start of lap | meters | Increases monotonically (always increasing) |
+| **rel_distance** | Relative Distance | Normalized distance along the lap, where 0.0 is the first sample and 1.0 is the last sample. | unitless (0.0–1.0) | Useful for aligning telemetry across different laps. |
+
+### Driver and Car Ahead Information
+| Abbreviation | Full Name | Description | Type |
+|---|---|---|---|
+| **DriverAhead** | Driver Ahead | The car number of the driver directly ahead in the race order | String or None |
+| **DistanceToDriverAhead** | Distance To Driver Ahead | How far behind the next car is | meters |
+
+### Acceleration Vectors (G-Forces)
+The car experiences forces in three directions simultaneously. These are **computed by the extraction script** using gradient analysis of position, speed, and distance data. **These are NOT raw IMU sensor values**—they are mathematically derived and heavily processed.
+
+| Abbreviation | Full Name | Axis Direction | Computation Formula | Outlier Handling | Smoothing |
+|---|---|---|---|---|---|
+| `acc_x` | Longitudinal Acceleration | Forward/backward (along track) | `ax = gradient(v_ms) / gradient(time)` where `v_ms = speed / 3.6` | If `ax > 25 m/s²` (one-sided, positive only), value is replaced with previous sample's value. Boundary samples (first/last) are excluded. | 3-point moving average |
+| `acc_y` | Lateral Acceleration | Side-to-side (horizontal) | `ay = v² × C` where `C = dθ / (ds + 0.0001)`, `θ = arctan2(dy, dx)`, phase-unwrapped | **Stage 1 (intermediate):** if `\|dθ\| > 0.5 rad/sample`, replace with previous value before computing C and ay. **Stage 2:** hard-zero if `\|ay\| > 150 m/s²` (~15G) | 9-point moving average |
+| `acc_z` | Vertical Acceleration | Up/down (elevation changes) | `az = v² × C_z` where `C_z = dθ_z / (ds + 0.0001)`, `θ_z = arctan2(dz, dx)`, phase-unwrapped | **Stage 1 (intermediate):** if `\|dθ_z\| > 0.5 rad/sample`, replace with previous value. **Stage 2:** hard-zero if `\|az\| > 150 m/s²` (~15G) | 9-point moving average |
+
+### Position Data (3D Coordinates)
+| Abbreviation | Full Name | Description | Unit | Details |
+|---|---|---|---|---|
+| **x** | X Position | Horizontal position on the track (left-right) | meters | Interpolated from GPS |
+| **y** | Y Position | Horizontal position on the track (forward-backward) | meters | Interpolated from GPS |
+| **z** | Z Position | Vertical height above track surface | meters | Curbs, jumps, and elevation changes |
+
+**Note**: Position data is interpolated (estimated between actual measurements) to align with the higher-frequency car data. The car data comes at ~240ms intervals, position data at ~220ms, so they need to be matched up.
+
+### Other Telemetry Fields
+| Abbreviation | Full Name | Description |
+|---|---|---|
+| **dataKey** | Data Key | Unique identifier that links this telemetry data to a specific driver and lap |
+
+This is of the format - "Year-EventName-Session-Driver 3 letter code-Lap Number"
+eg. "2020-Bahrain Grand Prix-Race-HAM-1"
+
+
+---
+
+## 👤 DRIVER DATA (`drivers.json`)
+
+Static information about each driver that doesn't change during a session.
+
+| Abbreviation | Full Name | Description | Type |
+|---|---|---|---|
+| **driver** | Driver (ID) | Unique 3 letter driver identifier | String: "VER" |
+| **team** | Team | Team name the driver is racing for | String: "Red Bull Racing", "Ferrari", etc. |
+| **dn** | Driver Number | The number on the car | String: "44" |
+| **fn** | First Name | Driver's first name | String: "Lewis", "Max", "Kimi" |
+| **ln** | Last Name | Driver's last name | String: "Hamilton", "Verstappen", "Leclerc" |
+| **tc** | Team Color | Official team color in hexadecimal format | Hex string: "1e41ff" (Red Bull's blue), "dc0000" (Ferrari red) |
+| **url** | Headshot URL | Web link to the driver's official headshot photo | URL string, or "None" for some stand-in and practice-only drivers (e.g. Hülkenberg at Racing Point, Aitken at Williams) |
+
+Official images for every driver/team pairing are stored in the repo: the 2020 race-suit portrait (1920 × 1920) from the 2020 driver pages of formula1.com at `images/drivers/<team>/<driver>.png`, the 840 × 840 headshot behind this `url` at `images/headshots/<team>/<driver>.png`, and each team's 2020 car (465 × 138) at `images/cars/<team>.png`. All are untransformed PNG source assets; `images/manifest.json` lists the pixel size and source URL of every file. Keying by driver **and** team means George Russell gets a file for Williams and one for Mercedes (Sakhir Grand Prix); the 2020 site had one portrait per driver, so both pairings share it. Gaps: Schumacher (Haas, Abu Dhabi FP1) uses his 2021 portrait; Kubica and Nissany (FP1 only) have no portrait and Nissany has no headshot; headshots for drivers whose `url` is "None" come from F1's legacy driver assets. Run `python3 download_images.py` to refresh.
+
+> **Note:** In British Grand Prix Practice 1, Nico Hülkenberg's first session as Sergio Pérez's stand-in, the live timing source had no team or name for car 27. His `drivers.json` entry and the `team` column of his laps were filled in from his Practice 2 entry (Racing Point).
+
+
+
+## ⏱️ LAP TIMES DATA (`laptimes.json`)
+
+Comprehensive timing and performance information for each completed lap.
+
+> **Note:** Hungarian Grand Prix Practice 1 has lap times for every lap but telemetry only for laps from about 30 minutes into the session: F1's live timing archive has no car or position data before that.
+
+> **Note:** In the Austrian Grand Prix Race, F1's timing feed dropped about five laps (official laps 9-13 for most drivers), so FastF1 numbered every later lap too low. The race was re-extracted with each lap window rebuilt from the official (Jolpica) lap times, so `laptimes.json` and `*_tel.json` use the official lap numbers. The laps the feed missed have lap time, position and telemetry, but no sector times or speed traps, and `ff1G` is `true`. Alexander Albon's position data (`x`, `y`, `z`) is frozen from about lap 19 onwards in F1's archive; his other telemetry channels are complete.
+
+### Core Timing Information
+| Abbreviation | Full Name | Description | Unit | Notes |
+|---|---|---|---|---|
+| **time** | Lap Time | The actual lap time for this lap |  Seconds | For Race sessions this is overwritten with the official Ergast/Jolpica lap time when available. |
+| **lap** | Lap Number | Which lap this is (1st, 2nd, 3rd, etc.) | Integer | Counts from 1 |
+| **sesT** | Session Time | When this lap ended relative to session start |  Seconds |  |
+| **lST** | Lap Start Time | When this lap started relative to session start |  Seconds | Lap ended at "sesT", started at "lST" |
+| **lSD** | Lap Start Date | Calendar date/timestamp when lap started | Date string | Useful for multi-day sessions  |
+
+### Sector Times (Track Divided into 3 Sections)
+The track is divided into 3 sectors. Sector times help identify where a driver gained or lost time.
+
+| Abbreviation | Full Name | Description | Notes |
+|---|---|---|---|
+| **s1** | Sector 1 Time | Time to complete first section of track |  Seconds |
+| **s2** | Sector 2 Time | Time to complete second section of track |  Seconds |
+| **s3** | Sector 3 Time | Time to complete final section of track |  Seconds |
+| **s1T** | Sector 1 Session Time | Session time when the Sector 1 time was set relative to session start |  Seconds |
+| **s2T** | Sector 2 Session Time | Session time when the Sector 2 time was set relative to session start |  Seconds |
+| **s3T** | Sector 3 Session Time | Session time when the Sector 3 time was set relative to session start |  Seconds |
+
+
+
+### Speed Trap Data (Measured at Fixed Points)
+Modern F1 tracks have speed guns that measure top speed at specific locations:
+
+| Abbreviation | Full Name | Description | Unit |
+|---|---|---|---|
+| **vi1** | Speed @ Intermediate Point 1 | Top speed measured at speed trap in Sector 1 | km/h |
+| **vi2** | Speed @ Intermediate Point 2 | Top speed measured at speed trap in Sector 2 | km/h |
+| **vfl** | Speed @ Finish Line | Top speed measured at the finish line | km/h |
+| **vst** | Speed @ Longest Straight | Top speed measured on the longest straight | km/h |
+
+
+
+### Tire Information
+| Abbreviation | Full Name | Description | Type | Values |
+|---|---|---|---|---|
+| **compound** | Tire Compound | The type of tire being used | String | "SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET", "UNKNOWN" |
+| **life** | Tire Life | Laps driven on this tire (includes laps in other sessions for used sets of tires) | Integer (laps) |  |
+| **fresh** | Fresh Tire | Was this a new (fresh) tire when fitted? | Boolean | `true` = new tire, `false` = used tire. Tyre had TyreLife=0 at stint start, i.e. was a new tire |
+| **stint** | Stint Number | How many pit stops has this driver made | Integer | First stint = 1, after 1st pit stop = 2, etc. |
+
+### Mini-Sector Segment Times (OpenF1)
+Three-character encoded strings showing per-mini-sector colour/segment classification for each sector. Only available when OpenF1 data can be matched to the session. **OpenF1 has no data before 2023, so in this repository these columns are always `"None"`;** they are kept so the format matches the newer seasons.
+
+| Abbreviation | Full Name | Description | Values |
+|---|---|---|---|
+| **ms1** | Mini-Sector Sectors 1 | Encoded mini-sector classifications for Sector 1 | String of digits, e.g. `"01331111"` |
+| **ms2** | Mini-Sector Sectors 2 | Encoded mini-sector classifications for Sector 2 | String of digits |
+| **ms3** | Mini-Sector Sectors 3 | Encoded mini-sector classifications for Sector 3 | String of digits |
+
+Each character is one mini-sector and is encoded using the following colour map:
+
+| Encoded Digit | Meaning |
+|---|---|
+| `0` | Yellow |
+| `1` | Green |
+| `2` | Unknown |
+| `3` | Purple |
+| `4` | Unknown |
+| `5` | Pitlane |
+| `6` | Unknown |
+| `7` | Not Available |
+
+### Qualifying Segment
+| Abbreviation | Full Name | Description | Values |
+|---|---|---|---|
+| **qs** | Qualifying Segment | Which qualifying segment this lap belongs to (Qualifying only; split by FastF1). Present in Qualifying `laptimes.json` files only. | `"Q1"`, `"Q2"`, `"Q3"` |
+
+
+### Position and Status
+| Abbreviation | Full Name | Description | Type |
+|---|---|---|---|
+| **pos** | Position | Driver's position in the race/sprint at the end of this lap. Position of the driver at the end of each lap. This value is "None" for FP1, FP2, FP3, and Qualifying as well as for crash laps. For Race sessions this may be overwritten with the Ergast/Jolpica position when available. | Integer: 1-20 |
+| **status** | Track Status | A string that contains track status numbers for all track status that occurred during this lap.  | String: "1", "216" |
+| **pb** | Personal Best | Indicates whether this lap is the official personal best lap of a driver. If any lap of a driver is quicker than their respective personal best lap, this means that the quicker lap is invalid and not counted. For example, this can happen if the track limits were exceeded. | Boolean (`true`/`false`) |
+
+### Pit Stop Information
+If a driver pitted during this lap, it was either an **in-lap** (driving into pits) or **out-lap** (driving out of pits):
+
+| Abbreviation | Full Name | Description | Unit | Notes |
+|---|---|---|---|---|
+| **pin** | Pit In Time | When the driver entered the pit lane relative to session start |  Seconds | "None" if this wasn't an in-lap |
+| **pout** | Pit Out Time | When the driver exited the pit lane relative to session start | Seconds | "None" if this wasn't an out-lap |
+
+
+
+### Data Quality and Accuracy
+| Abbreviation | Full Name | Description | Type | Notes |
+|---|---|---|---|---|
+| **iacc** | Is Accurate | Is this lap timing data considered accurate? | Boolean | Indicates that the lap start and end time are synced correctly with other laps. Do not confuse this with the accuracy of the lap time or sector times. They are always considered to be accurate if they exist! If this value is `true`, the lap has passed as basic accuracy check for timing data. This does not guarantee accuracy but laps marked as inaccurate need to be handled with caution. They might contain errors which can not be spotted easily. |
+| **ff1G** | FastF1 Generated | Indicates that this lap was added by FastF1. Such a lap will generally have very limited information available and information is partly interpolated or based on reasonable assumptions. Cases were this is used are, for example, when a partial last lap is added for drivers that retired on track. | Boolean | `true` means some missing data was filled in |
+| **del** | Deleted | Indicates that a lap was deleted by the stewards, for example because of a track limits violation. | Boolean |  |
+| **delR** | Deleted Reason | Gives the reason for a lap time deletion.| String |  |
+
+### Driver/Team Reference
+| Abbreviation | Full Name | Type | Purpose |
+|---|---|---|---|
+| **drv** | Driver | String | Driver identifier/code. eg "HAM" |
+| **dNum** | Driver Number | String | Car number for cross-referencing eg. "16" |
+| **team** | Team | String | Team name eg. "Ferrari" |
+
+### Per-Lap Weather
+When weather data can be matched to individual laps, the following fields are appended to `laptimes.json`. These use the same abbreviations as `weather.json`.
+
+| Abbreviation | Full Name | Description | Unit |
+|---|---|---|---|
+| **wT** | Time | Session time when this weather sample was recorded | seconds |
+| **wAT** | Air Temperature | Ambient air temperature around the track | °C |
+| **wH** | Humidity | Relative humidity of the air | % |
+| **wP** | Pressure | Atmospheric air pressure | mbar |
+| **wR** | Rainfall | Boolean flag indicating whether it was raining | Boolean (`true`/`false`) |
+| **wTT** | Track Temperature | Temperature of the asphalt surface | °C |
+| **wWD** | Wind Direction | Direction the wind is coming from, measured as compass bearing | ° (0-359) |
+| **wWS** | Wind Speed | How fast the wind is blowing | m/s |
+
+### Track Status Reference
+| Status Code | Status Name                       | Description                                                                                                                                                                              | Typical When It Appears                                                                            | Notes                                                                                                                                                            |
+| ----------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `'1'`       | Track Clear                       | Indicates normal racing conditions with no restrictions. The circuit is considered safe for full-speed racing.                                                                           | At the start of a session, after incidents are cleared, or when other track control statuses end.  | Often used as a reset state after other flags or control measures.                                                                                               |
+| `'2'`       | Yellow Flag                       | Warns drivers of a hazard on the track (accident, debris, stopped car, etc.). Drivers must slow down and overtaking is prohibited in affected sectors.                                   | During incidents where marshals or recovery vehicles may be near the track.                        | Sector-level information may not always be specified in this status, meaning the exact affected sectors can be unknown in the data feed.                         |
+| `'3'`       | Unknown / Unused                  | A status code listed in the system but rarely or never observed in real telemetry or timing data.                                                                                        | Not typically seen in real race data.                                                              | Likely reserved for a future state, legacy compatibility, or internal system use. In many datasets it appears unused.                                            |
+| `'4'`       | Safety Car                        | A physical safety car is deployed on track to control the pace while marshals clear hazards or debris. Drivers must follow the safety car at reduced speed and overtaking is restricted. | Major accidents, heavy debris, or dangerous track conditions requiring neutralization of the race. | Race control manages field order behind the safety car. Lapped cars may be allowed to overtake depending on regulations.                                         |
+| `'5'`       | Red Flag                          | The session or race is stopped due to unsafe conditions (serious accident, barrier damage, severe weather, etc.). Cars return to the pit lane or stop as directed.                       | Major incidents or conditions where continuing even behind a safety car is unsafe.                 | Timing may be paused depending on session type. Restart procedures vary by race regulations.                                                                     |
+| `'6'`       | Virtual Safety Car (VSC) Deployed | A neutralization procedure where drivers must follow a controlled speed delta instead of following a physical safety car.                                                                | Smaller incidents where marshals need time on track but a full safety car is unnecessary.          | Drivers maintain a regulated pace via dashboard delta timing rather than forming a queue behind a safety car.                                                    |
+| `'7'`       | Virtual Safety Car Ending         | Signals that the Virtual Safety Car period is about to end and racing will resume shortly.                                                                                               | Immediately before the VSC period concludes.                                                       | Drivers see the “VSC ending” notification on steering wheels and broadcast graphics. Status `'1'` will follow to confirm the return to normal racing conditions. |
+
+---
+
+## 🎙️ TEAM RADIO (`team_radio.json`)
+
+Index of the team radio messages broadcast during the session, sorted by time. The audio files themselves are stored at `<driver>/radio/<file>.mp3` inside the session folder, using the original file name from the F1 live timing archive (`LEWHAM01_44_20201129_153950.mp3` = F1 driver id, number, date, time).
+
+OpenF1, the source in the 2026 repo, has no data before 2023, so for 2020 the index is read from the session's `TeamRadio.json` in the live timing archive. The columns are the same.
+
+| Abbreviation | Full Name | Description | Type |
+|---|---|---|---|
+| **drv** | Driver | 3 letter driver identifier; matches the driver folder name | String: "HAM" |
+| **dNum** | Driver Number | The number on the car | String: "44" |
+| **date** | Date | UTC time the clip was published in the live timing feed. Clips released together share a timestamp, so several messages can have the same `date`. | ISO 8601 string: "2020-11-29T15:40:16.778000+00:00" |
+| **file** | File | Path of the MP3 relative to the session folder; `"None"` if the download failed | String: "HAM/radio/LEWHAM01_44_20201129_153950.mp3" |
+| **url** | Recording URL | Original recording on `livetiming.formula1.com` | URL string |
+
+Only the clips F1 chose to broadcast are published, so this is a selection of messages, not the full radio log. Some sessions have no clips at all.
+
+---
+
+## 🏁 CIRCUIT/CORNER DATA (`corners.json`)
+
+Information about the physical corners of the racetrack layout.
+
+> **Note:** Two 2020 circuits have gaps in the MultiViewer data:
+> - **Tuscan Grand Prix (Mugello):** MultiViewer has no Mugello layout, and F1 reused Mugello's circuit key (149) for Jeddah in 2021. `get_mv_circuit_payload()` in `utils.py` therefore rejects a payload whose `circuitName` differs from the session's circuit short name (or whose layout year is newer than the session), so the Tuscan `corners.json` has empty corner arrays and its MultiViewer fields (`CircuitName`, `LayoutYear`, `PitLoss*`, `Marshal*`, `TrackX`/`TrackY`, etc.) are `null` or empty.
+> - **Sakhir Grand Prix (Bahrain Outer Track):** MultiViewer has no corners for this layout (`CornerNumber` is empty), but it does have its MultiViewer circuit details: circuit name and key, the layout lap (`Layout*`), the track outline (`TrackX`/`TrackY`) and `MiniSectorIndex`. Marshal lights/sectors and pit-loss values are not published for it.
+
+| Abbreviation | Full Name | Description | Unit | Purpose |
+|---|---|---|---|---|
+| **CornerNumber** | Corner Number | Sequential number of this corner | Integer: 1+ | Identifies which corner (1st, 2nd, 3rd, etc.) |
+| **X** | X Coordinate | Horizontal position of the corner on the track map |  meter |  |
+| **Y** | Y Coordinate | Horizontal position of the corner on the track map |  meter |  |
+| **Angle** | Angle | is an angle in degrees, used to visually offset the marker’s placement on a track map in a logical direction (usually orthogonal to the track). | ° (degrees) |  |
+| **Distance** | Distance | Location of the marker as a distance from the start/finish line.   | meter | Position relative to start/finish |
+| **Section** | Corner Section Classification | The track section this corner is located in: `"Straight"`, `"Low"`, `"Medium"`, or `"High"` (low/medium/high speed). Derived from the circuit's section breakdown (`sections/<circuit>.json`) by converting the corner's `Distance` to a percentage of the reference (fastest) lap's total lap distance. `null` if no section breakdown exists for this circuit. | Category or None | Classifies corners by the speed regime of the track they sit on |
+| **Rotation** | Rotation | Rotation of the circuit in degrees. This can be used to rotate the coordinate system of the telemetry (position) data to match the orientation of the official track map. | Degrees or None |  |
+
+### Track Sections (`sections` / `Section*` fields)
+
+The section breakdown of the lap: how the circuit is divided into straights and low/medium/high-speed stretches, as a percentage of total lap distance. Source: `sections/<circuit>.json` (manually curated per circuit, e.g. `sections/silverstone.json`). Each 2020 event is mapped to its file in `EVENT_SECTIONS_FILE` in `utils.py`. The percentage bands are converted to absolute distances using the reference (fastest) lap's total lap distance.
+
+Sections are available for 9 events: Austrian, Styrian, Hungarian, British, 70th Anniversary, Belgian, Italian, Emilia Romagna and Bahrain Grand Prix. There are none for the Tuscan, Russian, Eifel, Portuguese and Turkish Grands Prix (no sections file for Mugello, Sochi, Nürburgring, Portimão, Istanbul Park), or for the Spanish, Sakhir and Abu Dhabi Grands Prix, whose 2020 layout differs from the one the file describes (Spanish: Barcelona's final chicane, removed in 2023; Sakhir: the Bahrain Outer Circuit, not the Grand Prix layout the file describes; Abu Dhabi: Yas Marina before its 2021 reprofile), so its percentages would put the sections in the wrong place.
+
+Each section band has five attributes:
+
+| Field | Description | Unit |
+| --- | --- | --- |
+| **Type** | Section type: `"Straight"`, `"Low"`, `"Medium"`, or `"High"` (low/medium/high speed) | Category |
+| **StartPercent** | Start of the section as a percentage of total lap distance | % |
+| **EndPercent** | End of the section as a percentage of total lap distance | % |
+| **StartDistance** | Start of the section as a distance from the start/finish line | meter |
+| **EndDistance** | End of the section as a distance from the start/finish line | meter |
+
+The bands are stored as parallel column lists — `SectionType`, `SectionStartPercent`, `SectionEndPercent`, `SectionStartDistance`, `SectionEndDistance` — each an array with one entry per section band, alongside the per-corner `Section` array (aligned with `CornerNumber`). All producers (`R.py`, `Q.py`, `FP1.py`-`FP3.py`, `corner.py`) write this column style.
+
+Note: sections are only emitted for events mapped to a `sections/<circuit>.json` file; otherwise the band arrays are empty and per-corner `Section` values are `null`.
+
+### MultiViewer Circuit Data (column style)
+
+The producers (`R.py`, `Q.py`, `FP1.py`-`FP3.py`, `corner.py`) also store everything else the MultiViewer circuit API returns, appended after the fields above (existing fields are unchanged). Built by `build_circuit_details()` in `utils.py`. Missing values are `null`; list fields that MultiViewer does not provide for a circuit are empty arrays.
+
+Corner letters: at some circuits a few corners share a number and are told apart by a letter (e.g. 1 and **1A**). `CornerNumber` stays an integer (so it repeats for those corners); use `CornerLabel` for the full name.
+
+**Per-corner**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **CornerLetter** | Corner Letter | Letter suffix that distinguishes corners sharing a number, e.g. 'A' for corner 1A. Empty string when the corner has no letter. Aligned with `CornerNumber`. | String |
+| **CornerLabel** | Corner Label | Display label for the corner: CornerNumber followed by CornerLetter, e.g. '1', '1A', '12A'. Aligned with `CornerNumber`. | String |
+| **MVDistance** | MultiViewer Distance | MultiViewer's own distance of the corner from the start/finish line (the API's 'length' field, converted from decimeters). It is fixed for the circuit layout, unlike Distance, which is computed from each session's fastest-lap telemetry, so it is useful as a cross-check when a session's reference lap has bad position data. Aligned with `CornerNumber`. | meter |
+
+**Marshal lights (one entry per light)**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **MarshalLightNumber** | Marshal Light Number | Number of each marshal light. | Integer array |
+| **MarshalLightX** | Marshal Light X Coordinate | Horizontal position of each marshal light on the track map (same coordinate system as the corner X). | Same unit as X |
+| **MarshalLightY** | Marshal Light Y Coordinate | Vertical position of each marshal light on the track map (same coordinate system as the corner Y). | Same unit as Y |
+| **MarshalLightAngle** | Marshal Light Angle | Angle in degrees used to visually offset the marshal light marker on a track map (usually orthogonal to the track). | ° (degrees) array |
+| **MarshalLightDistance** | Marshal Light Distance | Location of each marshal light as a distance from the start/finish line, computed from the reference (fastest) lap's telemetry exactly like the corner Distance. Falls back to MarshalLightMVDistance when FastF1 circuit info is unavailable. | meter array |
+| **MarshalLightMVDistance** | Marshal Light MultiViewer Distance | MultiViewer's own distance of each marshal light from the start/finish line (see MVDistance). | meter array |
+
+**Marshal sectors (one entry per sector)**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **MarshalSectorNumber** | Marshal Sector Number | Number of each marshal sector. | Integer array |
+| **MarshalSectorX** | Marshal Sector X Coordinate | Horizontal position of each marshal sector on the track map (same coordinate system as the corner X). | Same unit as X |
+| **MarshalSectorY** | Marshal Sector Y Coordinate | Vertical position of each marshal sector on the track map (same coordinate system as the corner Y). | Same unit as Y |
+| **MarshalSectorAngle** | Marshal Sector Angle | Angle in degrees used to visually offset the marshal sector marker on a track map (usually orthogonal to the track). | ° (degrees) array |
+| **MarshalSectorDistance** | Marshal Sector Distance | Location of each marshal sector as a distance from the start/finish line, computed from the reference (fastest) lap's telemetry exactly like the corner Distance. Falls back to MarshalSectorMVDistance when FastF1 circuit info is unavailable. | meter array |
+| **MarshalSectorMVDistance** | Marshal Sector MultiViewer Distance | MultiViewer's own distance of each marshal sector from the start/finish line (see MVDistance). | meter array |
+
+**Circuit**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **CircuitKey** | Circuit Key | Unique circuit key from the F1 live timing API. | Integer |
+| **CircuitName** | Circuit Name | Circuit name as listed by MultiViewer, e.g. 'Sakhir'. | String |
+| **Location** | Location | City or area of the circuit, e.g. 'Sakhir'. | String |
+| **CountryName** | Country Name | Country of the circuit. | String |
+| **CountryKey** | Country Key | Country key from the F1 live timing API. | Integer |
+| **CountryIocCode** | Country IOC Code | Three-letter IOC country code, e.g. 'BRN'. | String |
+| **PitLossNormal** | Pit Loss (Green Flag) | Estimated time lost by making a pit stop under green-flag conditions. null when MultiViewer has no estimate for the circuit. | Seconds or None |
+| **PitLossSC** | Pit Loss (Safety Car) | Estimated time lost by making a pit stop under the Safety Car. null when MultiViewer has no estimate for the circuit. | Seconds or None |
+| **PitLossVSC** | Pit Loss (Virtual Safety Car) | Estimated time lost by making a pit stop under the Virtual Safety Car. null when MultiViewer has no estimate for the circuit. | Seconds or None |
+
+**Layout source**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **LayoutYear** | Layout Year | Season of the MultiViewer layout data in this file. MultiViewer does not publish every season, so the most recent available year up to the session's season is used; for 2020 sessions this is normally 2020. All Layout* fields, the Track* fields and the marker positions describe this season, not the current session. | Year |
+| **LayoutRound** | Layout Round | Championship round of the layout source meeting. | Integer |
+| **LayoutRaceDate** | Layout Race Date | Race date of the layout source meeting. | Date (YYYY-MM-DD) |
+| **LayoutMeetingKey** | Layout Meeting Key | F1 live timing meeting key of the layout source meeting. null when not provided. | Integer or None |
+| **LayoutMeetingName** | Layout Meeting Name | Name of the layout source meeting, e.g. 'Hungarian Grand Prix'. null when not provided. | String or None |
+| **LayoutMeetingOfficialName** | Layout Meeting Official Name | Official (sponsor) name of the layout source meeting. null when not provided. | String or None |
+| **LayoutLapDriverNumber** | Layout Lap Driver Number | Driver number of the reference lap MultiViewer used to build the track outline. | String |
+| **LayoutLapNumber** | Layout Lap Number | Lap number of the reference lap. | Integer |
+| **LayoutLapSession** | Layout Lap Session | Session of the reference lap, e.g. 'FP1' or 'Practice 1'. | String |
+| **LayoutLapTime** | Layout Lap Time | Lap time of the reference lap. | Seconds |
+| **LayoutLapStartDate** | Layout Lap Start Date | Timestamp at which the reference lap started. | ISO 8601 timestamp |
+| **LayoutLapStartSessionTime** | Layout Lap Start Session Time | Session time at which the reference lap started. | Seconds |
+| **LayoutLapSessionStartTime** | Layout Lap Session Start Time | Session time at which the reference lap's session started. | Seconds |
+
+**Track outline**
+
+| Field | Full Name | Description | Unit |
+| --- | --- | --- | --- |
+| **TrackX** | Track Outline X | X coordinates of points along the circuit, in lap order. Plot TrackX against TrackY to draw the track map. | Same unit as X |
+| **TrackY** | Track Outline Y | Y coordinates of points along the circuit, aligned with TrackX. | Same unit as Y |
+| **TrackTime** | Track Outline Time | Elapsed time along MultiViewer's reference lap at each TrackX/TrackY point. Empty when MultiViewer does not provide it for the circuit. | Seconds array |
+| **MiniSectorIndex** | Mini-Sector Index | Indices into TrackX/TrackY marking the end of each mini-sector. Empty when MultiViewer does not provide it for the circuit. | Integer array |
+
+
+
+## 📚 Where to Find More Information
+
+Official FastF1 Documentation: https://docs.fastf1.dev/
+
+- Detailed API documentation
+- Examples and tutorials
+- Data accuracy information
+- Troubleshooting guides
+
+

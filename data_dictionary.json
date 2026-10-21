@@ -1,0 +1,925 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Machine-readable mapping of TracingInsights 2020 JSON output fields.",
+  "files": {
+    "weather.json": {
+      "description": "📍 WEATHER DATA",
+      "fields": {
+        "wT": {
+          "full_name": "Time",
+          "description": "Session time when this weather sample was recorded from the start of session",
+          "source": "FastF1",
+          "unit": "seconds"
+        },
+        "wAT": {
+          "full_name": "Air Temperature",
+          "description": "Ambient air temperature around the track",
+          "source": "FastF1",
+          "unit": "°C (Celsius)"
+        },
+        "wH": {
+          "full_name": "Humidity",
+          "description": "Relative humidity of the air",
+          "source": "FastF1",
+          "unit": "% (percentage)"
+        },
+        "wP": {
+          "full_name": "Pressure",
+          "description": "Atmospheric air pressure",
+          "source": "FastF1",
+          "unit": "mbar (millibars)"
+        },
+        "wR": {
+          "full_name": "Rainfall",
+          "description": "Boolean flag indicating whether it was raining at this moment",
+          "source": "FastF1",
+          "unit": "Boolean (true/false)"
+        },
+        "wTT": {
+          "full_name": "Track Temperature",
+          "description": "Temperature of the asphalt surface",
+          "source": "FastF1",
+          "unit": "°C (Celsius)"
+        },
+        "wWD": {
+          "full_name": "Wind Direction",
+          "description": "Direction the wind is coming from, measured as compass bearing",
+          "source": "FastF1",
+          "unit": "° (degrees, 0-359)"
+        },
+        "wWS": {
+          "full_name": "Wind Speed",
+          "description": "How fast the wind is blowing",
+          "source": "FastF1",
+          "unit": "m/s (meters per second)"
+        }
+      }
+    },
+    "rcm.json": {
+      "description": "📋 RACE CONTROL MESSAGES",
+      "fields": {
+        "time": {
+          "full_name": "Time",
+          "description": "Session time when this message was issued",
+          "source": "FastF1",
+          "values": "Time"
+        },
+        "cat": {
+          "full_name": "Category",
+          "description": "Type of message being sent",
+          "source": "FastF1",
+          "values": "\"Other\", \"Flag\", \"Drs\", \"CarEvent\""
+        },
+        "msg": {
+          "full_name": "Message",
+          "description": "Human-readable description of the event",
+          "source": "FastF1",
+          "values": "Examples: \"Yellow Flag\", \"DRS Enabled\", \"Unsafe Release\""
+        },
+        "status": {
+          "full_name": "Status",
+          "description": "Additional context about the message state",
+          "source": "FastF1",
+          "values": "Examples: \"DISABLED\", \"ENABLED\", depends on category"
+        },
+        "flag": {
+          "full_name": "Flag",
+          "description": "Type of flag being waved (if applicable)",
+          "source": "FastF1",
+          "values": "\"GREEN\", \"RED\", \"YELLOW\", \"CLEAR\", \"CHEQUERED\""
+        },
+        "scope": {
+          "full_name": "Scope",
+          "description": "How wide the impact of this message is",
+          "source": "FastF1",
+          "values": "\"Track\" (entire track), \"Sector\" (one of 3 sectors), \"Driver\" (specific driver)"
+        },
+        "sector": {
+          "full_name": "Sector",
+          "description": "Which mini sector is affected (if scope is \"Sector\") There are 3 sectors, each divided into 8 mini sectors",
+          "source": "FastF1",
+          "values": "1-24"
+        },
+        "dNum": {
+          "full_name": "Driver Number / Racing Number",
+          "description": "The driver's car number affected by the message (if scope is \"Driver\")",
+          "source": "FastF1",
+          "values": "String: \"1\", \"44\", \"63\", etc."
+        },
+        "lap": {
+          "full_name": "Lap",
+          "description": "Which lap number this message refers to",
+          "source": "FastF1",
+          "values": "Integer: lap number"
+        }
+      }
+    },
+    "tel.json": {
+      "description": "🎯 TELEMETRY DATA",
+      "fields": {
+        "time": {
+          "full_name": "Time",
+          "description": "Time when this data sample was recorded from start of the lap",
+          "source": "FastF1",
+          "unit": "seconds"
+        },
+        "rpm": {
+          "full_name": "Revolutions Per Minute",
+          "description": "Engine rotations per minute",
+          "source": "FastF1",
+          "unit": "RPM",
+          "notes": "Notes: Higher on straights, lower in corners"
+        },
+        "speed": {
+          "full_name": "Speed",
+          "description": "How fast the car is traveling",
+          "source": "FastF1",
+          "unit": "km/h",
+          "notes": "Notes: Derived from GPS/telemetry sources"
+        },
+        "gear": {
+          "full_name": "Gear",
+          "description": "Current gear the car is in",
+          "source": "FastF1",
+          "unit": "0-8",
+          "notes": "Notes: F1 uses 8-speed gearboxes; 0 = neutral"
+        },
+        "throttle": {
+          "full_name": "Throttle Position",
+          "description": "How much the driver is pressing the throttle pedal",
+          "source": "FastF1",
+          "unit": "0-100%",
+          "notes": "Notes: 0% = fully released, 100% = floored"
+        },
+        "brake": {
+          "full_name": "Brake",
+          "description": "Whether brakes are being applied",
+          "source": "FastF1",
+          "unit": "Boolean (0/1)",
+          "notes": "Notes: Binary: either braking or not"
+        },
+        "drs": {
+          "full_name": "Drag Reduction System",
+          "description": "Status of DRS (rear wing flap that reduces drag). The raw FastF1 value is mapped to a binary open/closed state.",
+          "source": "FastF1",
+          "unit": "0 or 1",
+          "notes": "Notes: 0 = Off/closed; 1 = open. Raw FastF1 DRS values of 10, 12, or 14 are treated as open."
+        },
+        "distance": {
+          "full_name": "Distance",
+          "description": "Total distance driven since start of lap",
+          "source": "FastF1",
+          "unit": "meters",
+          "notes": "Notes: Increases monotonically (always increasing)"
+        },
+        "rel_distance": {
+          "full_name": "Relative Distance",
+          "description": "Normalized distance along the lap, where 0.0 is the first sample and 1.0 is the last sample.",
+          "source": "FastF1",
+          "unit": "unitless (0.0–1.0)",
+          "notes": "Notes: Useful for aligning telemetry across different laps."
+        },
+        "DriverAhead": {
+          "full_name": "Driver Ahead",
+          "description": "The car number of the driver directly ahead in the race order",
+          "source": "FastF1",
+          "type": "String or None"
+        },
+        "DistanceToDriverAhead": {
+          "full_name": "Distance To Driver Ahead",
+          "description": "How far behind the next car is",
+          "source": "FastF1",
+          "type": "meters"
+        },
+        "acc_x": {
+          "full_name": "Longitudinal Acceleration",
+          "description": "Forward/backward (along track)",
+          "source": "computed",
+          "notes": "Computation Formula: ax = gradient(v_ms) / gradient(time) where v_ms = speed / 3.6; Outlier Handling: If ax > 25 m/s² (one-sided, positive only), value is replaced with previous sample's value. Boundary samples (first/last) are excluded.; Smoothing: 3-point moving average"
+        },
+        "acc_y": {
+          "full_name": "Lateral Acceleration",
+          "description": "Side-to-side (horizontal)",
+          "source": "computed",
+          "notes": "Computation Formula: ay = v² × C where C = dθ / (ds + 0.0001), θ = arctan2(dy, dx), phase-unwrapped; Outlier Handling: Stage 1 (intermediate): if |dθ| > 0.5 rad/sample, replace with previous value before computing C and ay. Stage 2: hard-zero if |ay| > 150 m/s² (~15G); Smoothing: 9-point moving average"
+        },
+        "acc_z": {
+          "full_name": "Vertical Acceleration",
+          "description": "Up/down (elevation changes)",
+          "source": "computed",
+          "notes": "Computation Formula: az = v² × C_z where C_z = dθ_z / (ds + 0.0001), θ_z = arctan2(dz, dx), phase-unwrapped; Outlier Handling: Stage 1 (intermediate): if |dθ_z| > 0.5 rad/sample, replace with previous value. Stage 2: hard-zero if |az| > 150 m/s² (~15G); Smoothing: 9-point moving average"
+        },
+        "x": {
+          "full_name": "X Position",
+          "description": "Horizontal position on the track (left-right)",
+          "source": "FastF1",
+          "unit": "meters",
+          "notes": "Details: Interpolated from GPS"
+        },
+        "y": {
+          "full_name": "Y Position",
+          "description": "Horizontal position on the track (forward-backward)",
+          "source": "FastF1",
+          "unit": "meters",
+          "notes": "Details: Interpolated from GPS"
+        },
+        "z": {
+          "full_name": "Z Position",
+          "description": "Vertical height above track surface",
+          "source": "FastF1",
+          "unit": "meters",
+          "notes": "Details: Curbs, jumps, and elevation changes"
+        },
+        "dataKey": {
+          "full_name": "Data Key",
+          "description": "Unique identifier that links this telemetry data to a specific driver and lap",
+          "source": "FastF1"
+        }
+      }
+    },
+    "drivers.json": {
+      "description": "👤 DRIVER DATA",
+      "fields": {
+        "driver": {
+          "full_name": "Driver (ID)",
+          "description": "Unique 3 letter driver identifier",
+          "source": "FastF1",
+          "type": "String: \"VER\""
+        },
+        "team": {
+          "full_name": "Team",
+          "description": "Team name the driver is racing for",
+          "source": "FastF1",
+          "type": "String: \"Red Bull Racing\", \"Ferrari\", etc."
+        },
+        "dn": {
+          "full_name": "Driver Number",
+          "description": "The number on the car",
+          "source": "FastF1",
+          "type": "String: \"44\""
+        },
+        "fn": {
+          "full_name": "First Name",
+          "description": "Driver's first name",
+          "source": "FastF1",
+          "type": "String: \"Lewis\", \"Max\", \"Kimi\""
+        },
+        "ln": {
+          "full_name": "Last Name",
+          "description": "Driver's last name",
+          "source": "FastF1",
+          "type": "String: \"Hamilton\", \"Verstappen\", \"Leclerc\""
+        },
+        "tc": {
+          "full_name": "Team Color",
+          "description": "Official team color in hexadecimal format",
+          "source": "FastF1",
+          "type": "Hex string: \"1e41ff\" (Red Bull's blue), \"dc0000\" (Ferrari red)"
+        },
+        "url": {
+          "full_name": "Headshot URL",
+          "description": "Web link to the driver's official headshot photo",
+          "source": "FastF1",
+          "type": "URL string",
+          "notes": "This is the small 1col rendition. Full-size official images are saved in the repo under images/, keyed by driver and team: drivers/<team>/<driver>.png (1920px 2020 race-suit portrait), headshots/<team>/<driver>.png (840px headshot behind this url) and cars/<team>.png (2020 car side view); see images/manifest.json. \"None\" for some pairings (e.g. ALB at Toro Rosso, GAS at Red Bull Racing, practice-only drivers)."
+        }
+      }
+    },
+    "laptimes.json": {
+      "description": "⏱️ LAP TIMES DATA",
+      "fields": {
+        "time": {
+          "full_name": "Lap Time",
+          "description": "The actual lap time for this lap",
+          "source": "FastF1 / Ergast/Jolpica",
+          "unit": "Seconds",
+          "notes": "Notes: For Race sessions this is overwritten with the official Ergast/Jolpica lap time when available."
+        },
+        "lap": {
+          "full_name": "Lap Number",
+          "description": "Which lap this is (1st, 2nd, 3rd, etc.)",
+          "source": "FastF1",
+          "unit": "Integer",
+          "notes": "Notes: Counts from 1"
+        },
+        "sesT": {
+          "full_name": "Session Time",
+          "description": "When this lap ended relative to session start",
+          "source": "FastF1",
+          "unit": "Seconds"
+        },
+        "lST": {
+          "full_name": "Lap Start Time",
+          "description": "When this lap started relative to session start",
+          "source": "FastF1",
+          "unit": "Seconds",
+          "notes": "Notes: Lap ended at \"sesT\", started at \"lST\""
+        },
+        "lSD": {
+          "full_name": "Lap Start Date",
+          "description": "Calendar date/timestamp when lap started",
+          "source": "FastF1",
+          "unit": "Date string",
+          "notes": "Notes: Useful for multi-day sessions"
+        },
+        "s1": {
+          "full_name": "Sector 1 Time",
+          "description": "Time to complete first section of track",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "s2": {
+          "full_name": "Sector 2 Time",
+          "description": "Time to complete second section of track",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "s3": {
+          "full_name": "Sector 3 Time",
+          "description": "Time to complete final section of track",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "s1T": {
+          "full_name": "Sector 1 Session Time",
+          "description": "Session time when the Sector 1 time was set relative to session start",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "s2T": {
+          "full_name": "Sector 2 Session Time",
+          "description": "Session time when the Sector 2 time was set relative to session start",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "s3T": {
+          "full_name": "Sector 3 Session Time",
+          "description": "Session time when the Sector 3 time was set relative to session start",
+          "source": "FastF1",
+          "notes": "Notes: Seconds"
+        },
+        "vi1": {
+          "full_name": "Speed @ Intermediate Point 1",
+          "description": "Top speed measured at speed trap in Sector 1",
+          "source": "FastF1",
+          "unit": "km/h"
+        },
+        "vi2": {
+          "full_name": "Speed @ Intermediate Point 2",
+          "description": "Top speed measured at speed trap in Sector 2",
+          "source": "FastF1",
+          "unit": "km/h"
+        },
+        "vfl": {
+          "full_name": "Speed @ Finish Line",
+          "description": "Top speed measured at the finish line",
+          "source": "FastF1",
+          "unit": "km/h"
+        },
+        "vst": {
+          "full_name": "Speed @ Longest Straight",
+          "description": "Top speed measured on the longest straight",
+          "source": "FastF1",
+          "unit": "km/h"
+        },
+        "compound": {
+          "full_name": "Tire Compound",
+          "description": "The type of tire being used",
+          "source": "FastF1",
+          "values": "\"SOFT\", \"MEDIUM\", \"HARD\", \"INTERMEDIATE\", \"WET\", \"UNKNOWN\"",
+          "type": "String"
+        },
+        "life": {
+          "full_name": "Tire Life",
+          "description": "Laps driven on this tire (includes laps in other sessions for used sets of tires)",
+          "source": "FastF1",
+          "type": "Integer (laps)"
+        },
+        "fresh": {
+          "full_name": "Fresh Tire",
+          "description": "Was this a new (fresh) tire when fitted?",
+          "source": "FastF1",
+          "values": "true = new tire, false = used tire. Tyre had TyreLife=0 at stint start, i.e. was a new tire",
+          "type": "Boolean"
+        },
+        "stint": {
+          "full_name": "Stint Number",
+          "description": "How many pit stops has this driver made",
+          "source": "FastF1",
+          "values": "First stint = 1, after 1st pit stop = 2, etc.",
+          "type": "Integer"
+        },
+        "ms1": {
+          "full_name": "Mini-Sector Sectors 1",
+          "description": "Encoded mini-sector classifications for Sector 1",
+          "source": "OpenF1",
+          "values": "String of digits, e.g. \"01331111\"",
+          "notes": "OpenF1 has no data before 2023, so this is always \"None\" for 2020."
+        },
+        "ms2": {
+          "full_name": "Mini-Sector Sectors 2",
+          "description": "Encoded mini-sector classifications for Sector 2",
+          "source": "OpenF1",
+          "values": "String of digits",
+          "notes": "OpenF1 has no data before 2023, so this is always \"None\" for 2020."
+        },
+        "ms3": {
+          "full_name": "Mini-Sector Sectors 3",
+          "description": "Encoded mini-sector classifications for Sector 3",
+          "source": "OpenF1",
+          "values": "String of digits",
+          "notes": "OpenF1 has no data before 2023, so this is always \"None\" for 2020."
+        },
+        "qs": {
+          "full_name": "Qualifying Segment",
+          "description": "Which qualifying segment this lap belongs to (Qualifying only; split by FastF1). Present in Qualifying laptimes only.",
+          "source": "computed",
+          "values": "\"Q1\", \"Q2\", \"Q3\""
+        },
+        "pos": {
+          "full_name": "Position",
+          "description": "Driver's position in the race at the end of this lap. Position of the driver at the end of each lap. This value is \"None\" for FP1, FP2, FP3, and Qualifying as well as for crash laps. For Race sessions this may be overwritten with the Ergast/Jolpica position when available.",
+          "source": "FastF1 / Ergast/Jolpica",
+          "type": "Integer: 1-20"
+        },
+        "status": {
+          "full_name": "Track Status",
+          "description": "A string that contains track status numbers for all track status that occurred during this lap.",
+          "source": "FastF1",
+          "type": "String: \"1\", \"216\""
+        },
+        "pb": {
+          "full_name": "Personal Best",
+          "description": "Indicates whether this lap is the official personal best lap of a driver. If any lap of a driver is quicker than their respective personal best lap, this means that the quicker lap is invalid and not counted. For example, this can happen if the track limits were exceeded.",
+          "source": "FastF1",
+          "type": "Boolean (true/false)"
+        },
+        "pin": {
+          "full_name": "Pit In Time",
+          "description": "When the driver entered the pit lane relative to session start",
+          "source": "FastF1",
+          "unit": "Seconds",
+          "notes": "Notes: \"None\" if this wasn't an in-lap"
+        },
+        "pout": {
+          "full_name": "Pit Out Time",
+          "description": "When the driver exited the pit lane relative to session start",
+          "source": "FastF1",
+          "unit": "Seconds",
+          "notes": "Notes: \"None\" if this wasn't an out-lap"
+        },
+        "iacc": {
+          "full_name": "Is Accurate",
+          "description": "Is this lap timing data considered accurate?",
+          "source": "FastF1",
+          "type": "Boolean",
+          "notes": "Notes: Indicates that the lap start and end time are synced correctly with other laps. Do not confuse this with the accuracy of the lap time or sector times. They are always considered to be accurate if they exist! If this value is true, the lap has passed as basic accuracy check for timing data. This does not guarantee accuracy but laps marked as inaccurate need to be handled with caution. They might contain errors which can not be spotted easily."
+        },
+        "ff1G": {
+          "full_name": "FastF1 Generated",
+          "description": "Indicates that this lap was added by FastF1. Such a lap will generally have very limited information available and information is partly interpolated or based on reasonable assumptions. Cases were this is used are, for example, when a partial last lap is added for drivers that retired on track.",
+          "source": "FastF1",
+          "type": "Boolean",
+          "notes": "Notes: true means some missing data was filled in"
+        },
+        "del": {
+          "full_name": "Deleted",
+          "description": "Indicates that a lap was deleted by the stewards, for example because of a track limits violation.",
+          "source": "FastF1",
+          "type": "Boolean"
+        },
+        "delR": {
+          "full_name": "Deleted Reason",
+          "description": "Gives the reason for a lap time deletion.",
+          "source": "FastF1",
+          "type": "String"
+        },
+        "drv": {
+          "full_name": "Driver",
+          "description": "Driver identifier/code. eg \"LEC\"",
+          "source": "FastF1",
+          "type": "String"
+        },
+        "dNum": {
+          "full_name": "Driver Number",
+          "description": "Car number for cross-referencing eg. \"1\"",
+          "source": "FastF1",
+          "type": "String"
+        },
+        "team": {
+          "full_name": "Team",
+          "description": "Team name eg. \"Ferrari\"",
+          "source": "FastF1",
+          "type": "String"
+        },
+        "wT": {
+          "full_name": "Time",
+          "description": "Session time when this weather sample was recorded",
+          "source": "FastF1",
+          "unit": "seconds"
+        },
+        "wAT": {
+          "full_name": "Air Temperature",
+          "description": "Ambient air temperature around the track",
+          "source": "FastF1",
+          "unit": "°C"
+        },
+        "wH": {
+          "full_name": "Humidity",
+          "description": "Relative humidity of the air",
+          "source": "FastF1",
+          "unit": "%"
+        },
+        "wP": {
+          "full_name": "Pressure",
+          "description": "Atmospheric air pressure",
+          "source": "FastF1",
+          "unit": "mbar"
+        },
+        "wR": {
+          "full_name": "Rainfall",
+          "description": "Boolean flag indicating whether it was raining",
+          "source": "FastF1",
+          "unit": "Boolean (true/false)"
+        },
+        "wTT": {
+          "full_name": "Track Temperature",
+          "description": "Temperature of the asphalt surface",
+          "source": "FastF1",
+          "unit": "°C"
+        },
+        "wWD": {
+          "full_name": "Wind Direction",
+          "description": "Direction the wind is coming from, measured as compass bearing",
+          "source": "FastF1",
+          "unit": "° (0-359)"
+        },
+        "wWS": {
+          "full_name": "Wind Speed",
+          "description": "How fast the wind is blowing",
+          "source": "FastF1",
+          "unit": "m/s"
+        }
+      },
+      "notes": "Hungarian Grand Prix Practice 1 has lap times for every lap but telemetry only from about 30 minutes into the session: F1's live timing archive has no car or position data before that. In the Austrian Grand Prix Race, F1's timing feed dropped about five laps (official laps 9-13); lap windows were rebuilt from the official lap times, and the laps the feed missed have no sector times or speed traps (ff1G true)."
+    },
+    "corners.json": {
+      "description": "🏁 CIRCUIT/CORNER DATA",
+      "fields": {
+        "CornerNumber": {
+          "full_name": "Corner Number",
+          "description": "Sequential number of this corner",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "Integer: 1+"
+        },
+        "X": {
+          "full_name": "X Coordinate",
+          "description": "Horizontal position of the corner on the track map",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "meter"
+        },
+        "Y": {
+          "full_name": "Y Coordinate",
+          "description": "Horizontal position of the corner on the track map",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "meter"
+        },
+        "Angle": {
+          "full_name": "Angle",
+          "description": "is an angle in degrees, used to visually offset the marker’s placement on a track map in a logical direction (usually orthogonal to the track).",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "° (degrees)"
+        },
+        "Distance": {
+          "full_name": "Distance",
+          "description": "Location of the marker as a distance from the start/finish line.",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "meter"
+        },
+        "Section": {
+          "full_name": "Corner Section Classification",
+          "description": "The track section this corner is located in: 'Straight', 'Low', 'Medium', or 'High' (low/medium/high speed). Derived from the circuit's section breakdown (sections/<circuit>.json, mapped per event in utils.EVENT_SECTIONS_FILE) by converting the corner's Distance to a percentage of the reference (fastest) lap's total lap distance. null if the event has no section breakdown (Tuscan, Russian, Eifel, Portuguese, Turkish: no sections file; Spanish, Sakhir, Abu Dhabi: 2020 layout differs from the sections file). Array aligned with CornerNumber.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "Category or None"
+        },
+        "Rotation": {
+          "full_name": "Rotation",
+          "description": "Rotation of the circuit in degrees. This can be used to rotate the coordinate system of the telemetry (position) data to match the orientation of the official track map.",
+          "source": "FastF1 / MultiViewer API",
+          "unit": "Degrees or None"
+        },
+        "SectionType": {
+          "full_name": "Section Type",
+          "description": "Type of each track section band: 'Straight', 'Low', 'Medium', or 'High'. array with one entry per section band.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "Category array"
+        },
+        "SectionStartPercent": {
+          "full_name": "Section Start Percent",
+          "description": "Start of each section band as a percentage of total lap distance. array with one entry per section band.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "% array"
+        },
+        "SectionEndPercent": {
+          "full_name": "Section End Percent",
+          "description": "End of each section band as a percentage of total lap distance. array with one entry per section band.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "% array"
+        },
+        "SectionStartDistance": {
+          "full_name": "Section Start Distance",
+          "description": "Start of each section band as a distance from the start/finish line, converted from percentage using the reference (fastest) lap's total lap distance. null when the reference lap distance is unavailable. array with one entry per section band.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "meter array or None"
+        },
+        "SectionEndDistance": {
+          "full_name": "Section End Distance",
+          "description": "End of each section band as a distance from the start/finish line, converted from percentage using the reference (fastest) lap's total lap distance. null when the reference lap distance is unavailable. array with one entry per section band.",
+          "source": "sections/<circuit>.json (curated) + fastest-lap reference",
+          "unit": "meter array or None"
+        },
+        "CornerLetter": {
+          "full_name": "Corner Letter",
+          "description": "Letter suffix that distinguishes corners sharing a number, e.g. 'A' for corner 1A. Empty string when the corner has no letter. Array aligned with CornerNumber.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "CornerLabel": {
+          "full_name": "Corner Label",
+          "description": "Display label for the corner: CornerNumber followed by CornerLetter, e.g. '1', '1A', '12A'. Array aligned with CornerNumber.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "MVDistance": {
+          "full_name": "MultiViewer Distance",
+          "description": "MultiViewer's own distance of the corner from the start/finish line (the API's 'length' field, converted from decimeters). It is fixed for the circuit layout, unlike Distance, which is computed from each session's fastest-lap telemetry, so it is useful as a cross-check when a session's reference lap has bad position data. Array aligned with CornerNumber.",
+          "source": "MultiViewer API",
+          "unit": "meter"
+        },
+        "MarshalLightNumber": {
+          "full_name": "Marshal Light Number",
+          "description": "Number of each marshal light.",
+          "source": "MultiViewer API",
+          "unit": "Integer array"
+        },
+        "MarshalLightX": {
+          "full_name": "Marshal Light X Coordinate",
+          "description": "Horizontal position of each marshal light on the track map (same coordinate system as the corner X).",
+          "source": "MultiViewer API",
+          "unit": "Same unit as X"
+        },
+        "MarshalLightY": {
+          "full_name": "Marshal Light Y Coordinate",
+          "description": "Vertical position of each marshal light on the track map (same coordinate system as the corner Y).",
+          "source": "MultiViewer API",
+          "unit": "Same unit as Y"
+        },
+        "MarshalLightAngle": {
+          "full_name": "Marshal Light Angle",
+          "description": "Angle in degrees used to visually offset the marshal light marker on a track map (usually orthogonal to the track).",
+          "source": "MultiViewer API",
+          "unit": "° (degrees) array"
+        },
+        "MarshalLightDistance": {
+          "full_name": "Marshal Light Distance",
+          "description": "Location of each marshal light as a distance from the start/finish line, computed from the reference (fastest) lap's telemetry exactly like the corner Distance. Falls back to MarshalLightMVDistance when FastF1 circuit info is unavailable.",
+          "source": "MultiViewer API + fastest-lap reference",
+          "unit": "meter array"
+        },
+        "MarshalLightMVDistance": {
+          "full_name": "Marshal Light MultiViewer Distance",
+          "description": "MultiViewer's own distance of each marshal light from the start/finish line (see MVDistance).",
+          "source": "MultiViewer API",
+          "unit": "meter array"
+        },
+        "MarshalSectorNumber": {
+          "full_name": "Marshal Sector Number",
+          "description": "Number of each marshal sector.",
+          "source": "MultiViewer API",
+          "unit": "Integer array"
+        },
+        "MarshalSectorX": {
+          "full_name": "Marshal Sector X Coordinate",
+          "description": "Horizontal position of each marshal sector on the track map (same coordinate system as the corner X).",
+          "source": "MultiViewer API",
+          "unit": "Same unit as X"
+        },
+        "MarshalSectorY": {
+          "full_name": "Marshal Sector Y Coordinate",
+          "description": "Vertical position of each marshal sector on the track map (same coordinate system as the corner Y).",
+          "source": "MultiViewer API",
+          "unit": "Same unit as Y"
+        },
+        "MarshalSectorAngle": {
+          "full_name": "Marshal Sector Angle",
+          "description": "Angle in degrees used to visually offset the marshal sector marker on a track map (usually orthogonal to the track).",
+          "source": "MultiViewer API",
+          "unit": "° (degrees) array"
+        },
+        "MarshalSectorDistance": {
+          "full_name": "Marshal Sector Distance",
+          "description": "Location of each marshal sector as a distance from the start/finish line, computed from the reference (fastest) lap's telemetry exactly like the corner Distance. Falls back to MarshalSectorMVDistance when FastF1 circuit info is unavailable.",
+          "source": "MultiViewer API + fastest-lap reference",
+          "unit": "meter array"
+        },
+        "MarshalSectorMVDistance": {
+          "full_name": "Marshal Sector MultiViewer Distance",
+          "description": "MultiViewer's own distance of each marshal sector from the start/finish line (see MVDistance).",
+          "source": "MultiViewer API",
+          "unit": "meter array"
+        },
+        "CircuitKey": {
+          "full_name": "Circuit Key",
+          "description": "Unique circuit key from the F1 live timing API.",
+          "source": "MultiViewer API",
+          "unit": "Integer"
+        },
+        "CircuitName": {
+          "full_name": "Circuit Name",
+          "description": "Circuit name as listed by MultiViewer, e.g. 'Sakhir'.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "Location": {
+          "full_name": "Location",
+          "description": "City or area of the circuit, e.g. 'Sakhir'.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "CountryName": {
+          "full_name": "Country Name",
+          "description": "Country of the circuit.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "CountryKey": {
+          "full_name": "Country Key",
+          "description": "Country key from the F1 live timing API.",
+          "source": "MultiViewer API",
+          "unit": "Integer"
+        },
+        "CountryIocCode": {
+          "full_name": "Country IOC Code",
+          "description": "Three-letter IOC country code, e.g. 'BRN'.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "PitLossNormal": {
+          "full_name": "Pit Loss (Green Flag)",
+          "description": "Estimated time lost by making a pit stop under green-flag conditions. null when MultiViewer has no estimate for the circuit.",
+          "source": "MultiViewer API",
+          "unit": "Seconds or None"
+        },
+        "PitLossSC": {
+          "full_name": "Pit Loss (Safety Car)",
+          "description": "Estimated time lost by making a pit stop under the Safety Car. null when MultiViewer has no estimate for the circuit.",
+          "source": "MultiViewer API",
+          "unit": "Seconds or None"
+        },
+        "PitLossVSC": {
+          "full_name": "Pit Loss (Virtual Safety Car)",
+          "description": "Estimated time lost by making a pit stop under the Virtual Safety Car. null when MultiViewer has no estimate for the circuit.",
+          "source": "MultiViewer API",
+          "unit": "Seconds or None"
+        },
+        "LayoutYear": {
+          "full_name": "Layout Year",
+          "description": "Season of the MultiViewer layout data in this file. MultiViewer does not publish every season, so the most recent available year up to the session's season is used; for 2020 sessions this is normally 2020. All Layout* fields, the Track* fields and the marker positions describe this season, not the current session.",
+          "source": "MultiViewer API",
+          "unit": "Year"
+        },
+        "LayoutRound": {
+          "full_name": "Layout Round",
+          "description": "Championship round of the layout source meeting.",
+          "source": "MultiViewer API",
+          "unit": "Integer"
+        },
+        "LayoutRaceDate": {
+          "full_name": "Layout Race Date",
+          "description": "Race date of the layout source meeting.",
+          "source": "MultiViewer API",
+          "unit": "Date (YYYY-MM-DD)"
+        },
+        "LayoutMeetingKey": {
+          "full_name": "Layout Meeting Key",
+          "description": "F1 live timing meeting key of the layout source meeting. null when not provided.",
+          "source": "MultiViewer API",
+          "unit": "Integer or None"
+        },
+        "LayoutMeetingName": {
+          "full_name": "Layout Meeting Name",
+          "description": "Name of the layout source meeting, e.g. 'Hungarian Grand Prix'. null when not provided.",
+          "source": "MultiViewer API",
+          "unit": "String or None"
+        },
+        "LayoutMeetingOfficialName": {
+          "full_name": "Layout Meeting Official Name",
+          "description": "Official (sponsor) name of the layout source meeting. null when not provided.",
+          "source": "MultiViewer API",
+          "unit": "String or None"
+        },
+        "LayoutLapDriverNumber": {
+          "full_name": "Layout Lap Driver Number",
+          "description": "Driver number of the reference lap MultiViewer used to build the track outline.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "LayoutLapNumber": {
+          "full_name": "Layout Lap Number",
+          "description": "Lap number of the reference lap.",
+          "source": "MultiViewer API",
+          "unit": "Integer"
+        },
+        "LayoutLapSession": {
+          "full_name": "Layout Lap Session",
+          "description": "Session of the reference lap, e.g. 'FP1' or 'Practice 1'.",
+          "source": "MultiViewer API",
+          "unit": "String"
+        },
+        "LayoutLapTime": {
+          "full_name": "Layout Lap Time",
+          "description": "Lap time of the reference lap.",
+          "source": "MultiViewer API",
+          "unit": "Seconds"
+        },
+        "LayoutLapStartDate": {
+          "full_name": "Layout Lap Start Date",
+          "description": "Timestamp at which the reference lap started.",
+          "source": "MultiViewer API",
+          "unit": "ISO 8601 timestamp"
+        },
+        "LayoutLapStartSessionTime": {
+          "full_name": "Layout Lap Start Session Time",
+          "description": "Session time at which the reference lap started.",
+          "source": "MultiViewer API",
+          "unit": "Seconds"
+        },
+        "LayoutLapSessionStartTime": {
+          "full_name": "Layout Lap Session Start Time",
+          "description": "Session time at which the reference lap's session started.",
+          "source": "MultiViewer API",
+          "unit": "Seconds"
+        },
+        "TrackX": {
+          "full_name": "Track Outline X",
+          "description": "X coordinates of points along the circuit, in lap order. Plot TrackX against TrackY to draw the track map.",
+          "source": "MultiViewer API",
+          "unit": "Same unit as X"
+        },
+        "TrackY": {
+          "full_name": "Track Outline Y",
+          "description": "Y coordinates of points along the circuit, aligned with TrackX.",
+          "source": "MultiViewer API",
+          "unit": "Same unit as Y"
+        },
+        "TrackTime": {
+          "full_name": "Track Outline Time",
+          "description": "Elapsed time along MultiViewer's reference lap at each TrackX/TrackY point. Empty when MultiViewer does not provide it for the circuit.",
+          "source": "MultiViewer API",
+          "unit": "Seconds array"
+        },
+        "MiniSectorIndex": {
+          "full_name": "Mini-Sector Index",
+          "description": "Indices into TrackX/TrackY marking the end of each mini-sector. Empty when MultiViewer does not provide it for the circuit.",
+          "source": "MultiViewer API",
+          "unit": "Integer array"
+        }
+      }
+    },
+    "team_radio.json": {
+      "description": "🎙️ TEAM RADIO",
+      "fields": {
+        "drv": {
+          "full_name": "Driver",
+          "description": "3 letter driver identifier; matches the driver folder name",
+          "source": "F1 live timing archive (TeamRadio.json)",
+          "type": "String: \"LEC\""
+        },
+        "dNum": {
+          "full_name": "Driver Number",
+          "description": "The number on the car",
+          "source": "F1 live timing archive (TeamRadio.json)",
+          "type": "String: \"16\""
+        },
+        "date": {
+          "full_name": "Date",
+          "description": "UTC time the clip was published in the live timing feed; clips released together share a timestamp",
+          "source": "F1 live timing archive (TeamRadio.json)",
+          "type": "ISO 8601 string"
+        },
+        "file": {
+          "full_name": "File",
+          "description": "Path of the MP3 relative to the session folder; \"None\" if the download failed",
+          "source": "F1 live timing archive (TeamRadio.json)",
+          "type": "String: \"HAM/radio/LEWHAM01_44_20201129_153950.mp3\""
+        },
+        "url": {
+          "full_name": "Recording URL",
+          "description": "Original recording on livetiming.formula1.com",
+          "source": "F1 live timing archive (TeamRadio.json)",
+          "type": "URL string"
+        }
+      }
+    }
+  }
+}

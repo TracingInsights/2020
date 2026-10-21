@@ -12,13 +12,20 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v2.0.0
+        uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.13'
       - name: Install requirements
         run: pip install -r requirements.txt
+      - name: F1 TV authentication for FastF1
+        uses: ./.github/actions/f1-auth
+        with:
+          token-json: ${{ secrets.F1AUTH_TOKEN }}
+          username: ${{ secrets.F1_USERNAME }}
+          password: ${{ secrets.F1_PASSWORD }}
+
       - name: Run strategy
         run: python strategy.py run-all
       - name: Commit changes

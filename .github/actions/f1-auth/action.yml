@@ -1,0 +1,52 @@
+name: F1 TV authentication for FastF1
+description: >
+  Since 15 Oct 2026 livetiming.formula1.com only serves its archive to F1 TV
+  subscribers (https://github.com/theOehrly/Fast-F1/issues/978). FastF1 >= 3.9
+  adds the Authorization header itself; this action gives it credentials.
+  Provide either secret (or both):
+    F1AUTH_TOKEN  - contents of ~/.local/share/fastf1/f1auth_token.json from a
+                    machine that signed in (python -m fastf1 auth f1tv --authenticate).
+                    Expires after a few days.
+    F1_USERNAME / F1_PASSWORD - F1 account login; FastF1 signs in
+                    non-interactively whenever it has no valid token.
+inputs:
+  token-json:
+    description: Contents of a FastF1 f1auth_token.json file
+    required: false
+    default: ''
+  username:
+    description: Formula 1 account email
+    required: false
+    default: ''
+  password:
+    description: Formula 1 account password
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Configure FastF1 F1 TV authentication
+      shell: bash
+      env:
+        TOKEN_JSON: ${{ inputs.token-json }}
+        F1_USER: ${{ inputs.username }}
+        F1_PASS: ${{ inputs.password }}
+      run: |
+        if [ -n "$TOKEN_JSON" ]; then
+          dir="$(python -c 'import platformdirs; print(platformdirs.user_data_dir("fastf1"))')"
+          mkdir -p "$dir"
+          ( umask 077; printf '%s' "$TOKEN_JSON" > "$dir/f1auth_token.json" )
+          echo "Restored FastF1 token file"
+        fi
+        if [ -n "$F1_USER" ] && [ -n "$F1_PASS" ]; then
+          {
+            echo "FASTF1_AUTH_METHOD=password"
+            echo "F1_USERNAME=$F1_USER"
+            echo "F1_PASSWORD=$F1_PASS"
+          } >> "$GITHUB_ENV"
+          echo "FastF1 will sign in with F1_USERNAME / F1_PASSWORD when needed"
+        fi
+        if [ -z "$TOKEN_JSON" ] && { [ -z "$F1_USER" ] || [ -z "$F1_PASS" ]; }; then
+          echo "::warning::No F1TV credentials (secrets F1AUTH_TOKEN or F1_USERNAME/F1_PASSWORD); livetiming requests will fail with 401"
+        fi
+        python -m fastf1 auth f1tv --status || true
